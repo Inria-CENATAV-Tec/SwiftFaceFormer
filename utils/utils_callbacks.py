@@ -61,7 +61,7 @@ class CallBackLogging(object):
         self.init = False
         self.tic = 0
 
-    def __call__(self, global_step, loss: AverageMeter, epoch: int, fp16: bool, grad_scaler: torch.cuda.amp.GradScaler):
+    def __call__(self, global_step, loss: AverageMeter, epoch: int, fp16: bool = False, grad_scaler: torch.cuda.amp.GradScaler = None):
         if self.rank == 0 and global_step > 0 and global_step % self.frequent == 0:
             if self.init:
                 try:

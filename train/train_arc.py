@@ -3,6 +3,7 @@ import logging
 import os
 import time
 
+
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
@@ -11,8 +12,12 @@ from torch.nn import CrossEntropyLoss
 from torch.nn.parallel.distributed import DistributedDataParallel
 from torch.nn.utils import clip_grad_norm_
 
+import sys
+sys.path.append('/Documents/PocketNet/')
+
 import backbones.genotypes as gt
 from backbones.augment_cnn import AugmentCNN
+from backbones import SwiftFormer_XS, SwiftFormer_L3
 from config.config_example import config as cfg
 from utils import losses
 from utils.dataset import MXFaceDataset, DataLoaderX
@@ -47,8 +52,13 @@ def main(args):
 
 
     # load model
-    genotype = gt.from_str(cfg.genotypes["softmax_casia"])
-    backbone_student = AugmentCNN(C=cfg.channel, n_layers=cfg.n_layers, genotype=genotype, stem_multiplier=4, emb=cfg.embedding_size).to(local_rank)
+    if args_.network_student == "SwiftFormer_XS":
+        backbone_student = SwiftFormer_XS(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+    elif args_.network_student == "SwiftFormer_L3":
+        backbone_student = SwiftFormer_L3(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+    else:
+        genotype = gt.from_str(cfg.genotypes["softmax_casia"])
+        backbone_student = AugmentCNN(C=cfg.channel, n_layers=cfg.n_layers, genotype=genotype, stem_multiplier=4, emb=cfg.embedding_size).to(local_rank)
 
     if args.pretrained_student:
         try:
@@ -62,7 +72,6 @@ def main(args):
 
     #for ps in backbone_teacher.parameters():
     #    dist.broadcast(ps, 0)
-
     for ps in backbone_student.parameters():
         dist.broadcast(ps, 0)
     backbone_student = DistributedDataParallel(
@@ -144,6 +153,13 @@ def main(args):
             img = img.cuda(local_rank, non_blocking=True)
             label = label.cuda(local_rank, non_blocking=True)
 
+            #features = backbone_student(img)
+            #print(features.shape)
+            #print(len(features))
+            #print(features[0])
+            #print("---------------_")
+            #print(features[1])
+            #exit()
             features_student = F.normalize(backbone_student(img))
 
             thetas = header(features_student, label)
@@ -173,12 +189,12 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PoketNet Training')
-    parser.add_argument('--local_rank', type=int, default=0, help='local_rank')
-    parser.add_argument('--network_student', type=str, default="PocketNet", help="backbone of PocketNet network")
+    parser.add_argument('--local-rank', type=int, default=0, help='local_rank')
+    parser.add_argument('--network_student', type=str, default="SwiftFormer_L3", help="backbone of PocketNet network")
     parser.add_argument('--loss', type=str, default="ArcFace", help="loss function")
     parser.add_argument('--pretrained_student', type=int, default=0, help="use pretrained")
-    parser.add_argument('--resume', type=int, default=1, help="resume training")
-    parser.add_argument('--config', type=str, default="config/config_PocketNetM128.py", help="configuration path")
+    parser.add_argument('--resume', type=int, default=0, help="resume training")
+    parser.add_argument('--config', type=str, default="config/config_example.py", help="configuration path")
 
     args_ = parser.parse_args()
     main(args_)
