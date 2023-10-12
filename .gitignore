@@ -4,3 +4,4 @@ NAS/searchs_output
 *.log
 *.pth
 */**/*.pyc
+datasets/**/*

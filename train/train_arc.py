@@ -85,6 +85,17 @@ def main(args):
     #    header = losses.MarginCosineProduct(in_features=cfg.embedding_size, out_features=cfg.num_classes, s=64, m=cfg.margin).to(local_rank)
     #elif args.loss == "Softmax":
     #    header = losses.ArcFace(in_features=cfg.embedding_size, out_features=cfg.num_classes, s=64.0, m=0).to(local_rank)
+    elif args.loss == "MagFace":
+        feat_dim = cfg.embedding_size# dimension of the output features, e.g. 512
+        num_class = cfg.num_classes # number of classes in the training set.
+        margin_am = cfg.magface['margin_am'] # cos_theta - margin_am.
+        scale = cfg.magface['scale'] # the scaling factor for cosine values.
+        l_a = cfg.magface['l_a']
+        u_a = cfg.magface['u_a']
+        l_margin = cfg.magface['l_margin']
+        u_margin = cfg.magface['u_margin']
+        lamda = cfg.magface['lamda']
+        header = losses.MagFace(feat_dim, num_class, margin_am, scale, l_a, u_a, l_margin, u_margin, lamda).to(local_rank)
     else:
         print("Header not implemented")
    
@@ -191,7 +202,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PoketNet Training')
     parser.add_argument('--local-rank', type=int, default=0, help='local_rank')
     parser.add_argument('--network_student', type=str, default="SwiftFormer_L3", help="backbone of PocketNet network")
-    parser.add_argument('--loss', type=str, default="ArcFace", help="loss function")
+    parser.add_argument('--loss', type=str, default="MagFace", help="loss function")
     parser.add_argument('--pretrained_student', type=int, default=0, help="use pretrained")
     parser.add_argument('--resume', type=int, default=0, help="resume training")
     parser.add_argument('--config', type=str, default="config/config_example.py", help="configuration path")
