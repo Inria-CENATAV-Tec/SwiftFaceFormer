@@ -1,3 +1,13 @@
+# PocketNet custom
+
+Modifications to the PocketNet repo
+- Added SwiftFormer
+- Added MagFace
+
+The rest of the readme comes from the original repository
+
+--------
+
 # PocketNet
 
 
