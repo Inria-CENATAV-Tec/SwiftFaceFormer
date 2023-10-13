@@ -358,6 +358,8 @@ class SwiftFormer(nn.Module):
             #    else nn.Identity()
             self.head = nn.Sequential(*[nn.AdaptiveAvgPool1d(1),
                                         nn.BatchNorm1d(embed_dims[-1])
+                                        #nn.Unflatten(1,(512,1,1)),
+                                        #nn.Linear(embed_dims[-1],embed_dims[-1])
                                         ])
             self.dist = distillation
             if self.dist:
