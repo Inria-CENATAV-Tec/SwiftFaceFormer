@@ -12,13 +12,14 @@ from torch.nn.utils import clip_grad_norm_
 from torch.nn import CrossEntropyLoss, MSELoss
 
 from utils import losses
-from util.config import config as cfg
+from config import config_example as cfg
 from utils.dataset import MXFaceDataset, DataLoaderX
 from utils.utils_callbacks import CallBackVerification, CallBackLoggingKD, CallBackModelCheckpointKD
 from utils.utils_logging import AverageMeter, init_logging
 
 from backbones.iresnet import iresnet100
 from backbones.augment_cnn import AugmentCNN
+from backbones import SwiftFormer_XS, SwiftFormer_L3
 import backbones.genotypes as gt
 
 torch.backends.cudnn.benchmark = True
@@ -48,8 +49,13 @@ def main(args):
         sampler=train_sampler, num_workers=0, pin_memory=True, drop_last=True)
 
     # load student model
-    genotype = gt.from_str(cfg.genotypes["softmax_casia"])
-    backbone_student = AugmentCNN(C=cfg.channel, n_layers=cfg.n_layers, genotype=genotype, stem_multiplier=4, emb=cfg.embedding_size).to(local_rank)
+    if args_.network_student == "SwiftFormer_XS":
+        backbone_student = SwiftFormer_XS(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+    elif args_.network_student == "SwiftFormer_L3":
+        backbone_student = SwiftFormer_L3(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+    else:
+        genotype = gt.from_str(cfg.genotypes["softmax_casia"])
+        backbone_student = AugmentCNN(C=cfg.channel, n_layers=cfg.n_layers, genotype=genotype, stem_multiplier=4, emb=cfg.embedding_size).to(local_rank)
 
     if args.pretrained_student:
         try:
@@ -157,7 +163,7 @@ def main(args):
         # load teacher weights for specific epoch
         backbone_teacher = iresnet100(num_features=cfg.embedding_size).to(local_rank)
         try:
-            backbone_teacher_pth = os.path.join(cfg.teacher_pth, str((epoch + 1)*11372) + "backbone.pth")
+            backbone_teacher_pth = os.path.join(cfg.teacher_pth, str((epoch)*11372) + "backbone.pth")
             backbone_teacher.load_state_dict(torch.load(backbone_teacher_pth, map_location=torch.device(local_rank)))
 
             if rank == 0:

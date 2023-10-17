@@ -99,6 +99,7 @@ class MXFaceDataset(Dataset):
             label = label[0]
         label = torch.tensor(int(label), dtype=torch.long)
         sample = mx.image.imdecode(img).asnumpy()
+        assert sample.shape == (112,112,3), f"Sample shape {sample.shape} is not (112,112,3)"
         if self.transform is not None:
             sample = self.transform(sample)
         return sample, label

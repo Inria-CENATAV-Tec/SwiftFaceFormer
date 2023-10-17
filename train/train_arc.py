@@ -203,7 +203,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PoketNet Training')
     parser.add_argument('--local-rank', type=int, default=0, help='local_rank')
-    parser.add_argument('--network_student', type=str, default="SwiftFormer_L3", help="backbone of PocketNet network")
+    parser.add_argument('--network_student', type=str, default="SwiftFormer_XS", help="backbone of PocketNet network")
     parser.add_argument('--loss', type=str, default="ArcFace", help="loss function")
     parser.add_argument('--pretrained_student', type=int, default=0, help="use pretrained")
     parser.add_argument('--resume', type=int, default=0, help="resume training")

@@ -356,10 +356,11 @@ class SwiftFormer(nn.Module):
             #self.head = nn.Linear(
             #    embed_dims[-1], num_classes) if num_classes > 0 \
             #    else nn.Identity()
-            self.head = nn.Sequential(*[nn.AdaptiveAvgPool1d(1),
-                                        nn.BatchNorm1d(embed_dims[-1])
-                                        #nn.Unflatten(1,(512,1,1)),
-                                        #nn.Linear(embed_dims[-1],embed_dims[-1])
+            self.head = nn.Sequential(*[nn.AdaptiveAvgPool2d((1,1)),
+                                        nn.BatchNorm2d(embed_dims[-1]),
+                                        nn.Dropout(0.25),
+                                        nn.Flatten(),
+                                        nn.Linear(embed_dims[-1],512)
                                         ])
             self.dist = distillation
             if self.dist:
@@ -442,9 +443,9 @@ class SwiftFormer(nn.Module):
             if not self.training:
                 cls_out = (cls_out[0] + cls_out[1]) / 2
         else:
-            cls_out = self.head(x.mean(-2))
+            cls_out = self.head(x)
             #cls_out = self.norm(cls_out)
-            cls_out = cls_out.view(cls_out.size(0), -1)
+            #cls_out = cls_out.view(cls_out.size(0), -1)
         # For image classification
         return cls_out
 

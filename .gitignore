@@ -5,3 +5,4 @@ NAS/searchs_output
 *.pth
 */**/*.pyc
 datasets/**/*
+models/**/*
