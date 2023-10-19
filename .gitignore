@@ -6,3 +6,4 @@ NAS/searchs_output
 */**/*.pyc
 datasets/**/*
 models/**/*
+output/**/*
