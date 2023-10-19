@@ -358,7 +358,7 @@ class SwiftFormer(nn.Module):
             #    else nn.Identity()
             self.head = nn.Sequential(*[nn.AdaptiveAvgPool2d((1,1)),
                                         nn.BatchNorm2d(embed_dims[-1]),
-                                        nn.Dropout(0.1),
+                                        nn.Dropout(0.25),
                                         nn.Flatten(),
                                         nn.Linear(embed_dims[-1],512)
                                         ])

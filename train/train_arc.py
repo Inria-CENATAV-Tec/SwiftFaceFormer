@@ -63,8 +63,8 @@ def main(args):
 
     if args.pretrained_student:
         try:
-            backbone_student_pth = os.path.join(cfg.student_pth, str(cfg.student_global_step) + "backbone.pth")
-            backbone_student.load_state_dict(torch.load(backbone_student_pth, map_location=torch.device(local_rank)))
+            backbone_student_pth = cfg.student_pth
+            print(backbone_student.load_state_dict(torch.load(backbone_student_pth, map_location=torch.device(local_rank))['model'], strict=False))
 
             if rank == 0:
                 logging.info("backbone student loaded successfully!")
@@ -178,8 +178,8 @@ def main(args):
             loss_v = criterion(thetas, label)
             loss_v.backward()
 
-            #clip_grad_norm_(backbone_student.parameters(), max_norm=5, norm_type=2)
-            dispatch_clip_grad(backbone_student.parameters(), value=0.01, mode="agc")
+            clip_grad_norm_(backbone_student.parameters(), max_norm=5, norm_type=2)
+            #dispatch_clip_grad(backbone_student.parameters(), value=0.01, mode="agc")
 
             opt_backbone_student.step()
             opt_header.step()
@@ -203,9 +203,9 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PoketNet Training')
     parser.add_argument('--local-rank', type=int, default=0, help='local_rank')
-    parser.add_argument('--network_student', type=str, default="SwiftFormer_XS", help="backbone of PocketNet network")
+    parser.add_argument('--network_student', type=str, default="SwiftFormer_L3", help="backbone of PocketNet network")
     parser.add_argument('--loss', type=str, default="ArcFace", help="loss function")
-    parser.add_argument('--pretrained_student', type=int, default=0, help="use pretrained")
+    parser.add_argument('--pretrained_student', type=int, default=1, help="use pretrained")
     parser.add_argument('--resume', type=int, default=0, help="resume training")
     parser.add_argument('--config', type=str, default="config/config_example.py", help="configuration path")
 

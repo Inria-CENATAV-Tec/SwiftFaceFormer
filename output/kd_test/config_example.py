@@ -5,8 +5,8 @@ config.dataset = "retina"
 config.embedding_size = 512
 config.momentum = 0.9
 config.weight_decay = 5e-4
-config.batch_size = 128
-config.lr = 0.01
+config.batch_size = 1024
+config.lr = 0.1
 config.output = "output/swiftformer-arcface-retina"
 config.scale=1.0
 config.global_step=0
@@ -29,9 +29,9 @@ config.magface={"margin_am": 0.0,
                 "lamda": 20}
 
 # for KD
-config.teacher_pth = "models/r100-ms1mv3"
+#config.teacher_pth = "output/iresnet128"
 #config.teacher_global_step = 295672
-config.teacher_network="iresnet100"
+#config.teacher_network="resnet"
 
 # if use pretrained model (not for resume!)
 #config.student_pth = ""

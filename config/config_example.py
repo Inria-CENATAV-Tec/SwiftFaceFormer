@@ -5,9 +5,9 @@ config.dataset = "retina"
 config.embedding_size = 512
 config.momentum = 0.9
 config.weight_decay = 5e-4
-config.batch_size = 1024
-config.lr = 0.1
-config.output = "output/swiftformer-arcface-retina"
+config.batch_size = 128
+config.lr = 0.05
+config.output = "output/pretrained_swiftformer-L3-arcface-retina"
 config.scale=1.0
 config.global_step=0
 config.s=64.0
@@ -34,8 +34,8 @@ config.magface={"margin_am": 0.0,
 #config.teacher_network="resnet"
 
 # if use pretrained model (not for resume!)
-#config.student_pth = ""
-#config.student_global_step = 0
+config.student_pth = "models/SwiftFormer/SwiftFormer_L3.pth"
+config.student_global_step = 0
 #config.net_name="PocketNetM"
 #if (config.net_name=="PocketNetS"):
 #    config.channel=16
