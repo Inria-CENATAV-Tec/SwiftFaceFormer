@@ -298,7 +298,7 @@ class SwiftFormer(nn.Module):
     def __init__(self, layers, embed_dims=None,
                  mlp_ratios=4, downsamples=None,
                  act_layer=nn.GELU,
-                 num_classes=1000,
+                 num_classes=0,
                  down_patch_size=3, down_stride=2, down_pad=1,
                  drop_rate=0., drop_path_rate=0.,
                  use_layer_scale=True, layer_scale_init_value=1e-5,
@@ -306,7 +306,7 @@ class SwiftFormer(nn.Module):
                  init_cfg=None,
                  pretrained=None,
                  vit_num=1,
-                 distillation=True,
+                 distillation=False,
                  **kwargs):
         super().__init__()
 
