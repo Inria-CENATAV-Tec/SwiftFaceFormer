@@ -9,9 +9,21 @@ from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from timm.models.layers import DropPath, trunc_normal_
 from timm.models.registry import register_model
 from timm.layers import to_2tuple
+from functools import partial
+
 import einops
 
+
+SwiftFormer_groups = {
+    'XXS': [8, 4, 2, 1],
+    'XS': [1, 1, 1, 1],
+    'S': [1, 1, 1, 1],
+    'l1': [1, 1, 1, 1],
+    'l3': [1, 1, 1, 1],
+}
+
 SwiftFormer_width = {
+    'XXS': [16, 48, 56, 128],
     'XS': [48, 56, 112, 220],
     'S': [48, 64, 168, 224],
     'l1': [48, 96, 192, 384],
@@ -19,11 +31,48 @@ SwiftFormer_width = {
 }
 
 SwiftFormer_depth = {
+    'XXS': [3, 2, 3, 4],
     'XS': [3, 3, 6, 4],
     'S': [3, 3, 9, 6],
     'l1': [4, 3, 10, 5],
     'l3': [4, 4, 12, 6],
 }
+
+class GDConv(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, padding, bias=False):
+        super(GDConv, self).__init__()
+        self.depthwise = nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, padding=padding, groups=in_planes,
+                                   bias=bias)
+        self.bn = nn.BatchNorm2d(in_planes)
+
+    def forward(self, x):
+        x = self.depthwise(x)
+        x = self.bn(x)
+        return x
+
+class ConvBlock(nn.Sequential):
+    def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1):
+        padding = (kernel_size - 1) // 2
+        super(ConvBlock, self).__init__(
+            nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=False),
+            nn.BatchNorm2d(out_planes),
+            nn.PReLU()
+        )
+
+class LoRaLin(nn.Module):
+    def __init__(self, in_feat, out_feat, gamma, bias=True):
+        super(LoRaLin, self).__init__()
+        rank = max(2, int(min(in_feat, out_feat) * gamma))
+        print(f"in_feat={in_feat}, rank={rank}, out_feat={out_feat}")
+        self.lin1 = nn.Linear(in_feat, rank, bias=False)
+        self.lin2 = nn.Linear(rank, out_feat, bias=bias)
+    def forward(self, input):
+        x = self.lin1(input)
+        x = self.lin2(x)
+        return x
+
+def get_linear(in_feat, out_feat, gamma=0):
+        return LoRaLin(in_feat, out_feat, gamma) if gamma else nn.Linear(in_feat, out_feat)
 
 def stem(in_chs, out_chs):
     """
@@ -69,13 +118,13 @@ class ConvEncoder(nn.Module):
     Output: tensor with shape [B, C, H, W]
     """
 
-    def __init__(self, dim, hidden_dim=64, kernel_size=3, drop_path=0., use_layer_scale=True):
+    def __init__(self, dim, hidden_dim=64, kernel_size=3, drop_path=0., use_layer_scale=True, pw2_groups=1):
         super().__init__()
         self.dwconv = nn.Conv2d(dim, dim, kernel_size=kernel_size, padding=kernel_size // 2, groups=dim)
         self.norm = nn.BatchNorm2d(dim)
         self.pwconv1 = nn.Conv2d(dim, hidden_dim, kernel_size=1)
-        self.act = nn.GELU()
-        self.pwconv2 = nn.Conv2d(hidden_dim, dim, kernel_size=1)
+        self.act = nn.GELU()#nn.GELU()
+        self.pwconv2 = nn.Conv2d(hidden_dim, dim, kernel_size=1, groups=pw2_groups)
         self.drop_path = DropPath(drop_path) if drop_path > 0. \
             else nn.Identity()
         self.use_layer_scale = use_layer_scale
@@ -145,16 +194,16 @@ class EfficientAdditiveAttnetion(nn.Module):
     Output: tensor in shape [B, N, D]
     """
 
-    def __init__(self, in_dims=512, token_dim=256, num_heads=2):
+    def __init__(self, in_dims=512, token_dim=256, num_heads=2, gamma = 0):
         super().__init__()
-
-        self.to_query = nn.Linear(in_dims, token_dim * num_heads)
-        self.to_key = nn.Linear(in_dims, token_dim * num_heads)
+ 
+        self.to_query = get_linear(in_dims, token_dim * num_heads, gamma=gamma)
+        self.to_key = get_linear(in_dims, token_dim * num_heads, gamma=gamma)
 
         self.w_g = nn.Parameter(torch.randn(token_dim * num_heads, 1))
         self.scale_factor = token_dim ** -0.5
-        self.Proj = nn.Linear(token_dim * num_heads, token_dim * num_heads)
-        self.final = nn.Linear(token_dim * num_heads, token_dim)
+        self.Proj = get_linear(token_dim * num_heads, token_dim * num_heads, gamma=gamma)
+        self.final = get_linear(token_dim * num_heads, token_dim, gamma=gamma)
 
     def forward(self, x):
         query = self.to_query(x)
@@ -193,7 +242,7 @@ class SwiftFormerLocalRepresentation(nn.Module):
         self.dwconv = nn.Conv2d(dim, dim, kernel_size=kernel_size, padding=kernel_size // 2, groups=dim)
         self.norm = nn.BatchNorm2d(dim)
         self.pwconv1 = nn.Conv2d(dim, dim, kernel_size=1)
-        self.act = nn.GELU()
+        self.act = nn.GELU()#GELU()
         self.pwconv2 = nn.Conv2d(dim, dim, kernel_size=1)
         self.drop_path = DropPath(drop_path) if drop_path > 0. \
             else nn.Identity()
@@ -232,13 +281,13 @@ class SwiftFormerEncoder(nn.Module):
     def __init__(self, dim, mlp_ratio=4.,
                  act_layer=nn.GELU,
                  drop=0., drop_path=0.,
-                 use_layer_scale=True, layer_scale_init_value=1e-5):
+                 use_layer_scale=True, layer_scale_init_value=1e-5, gamma=0):
 
         super().__init__()
 
         self.local_representation = SwiftFormerLocalRepresentation(dim=dim, kernel_size=3, drop_path=0.,
                                                                    use_layer_scale=True)
-        self.attn = EfficientAdditiveAttnetion(in_dims=dim, token_dim=dim, num_heads=1)
+        self.attn = EfficientAdditiveAttnetion(in_dims=dim, token_dim=dim, num_heads=1, gamma=gamma)
         self.linear = Mlp(in_features=dim, hidden_features=int(dim * mlp_ratio), act_layer=act_layer, drop=drop)
         self.drop_path = DropPath(drop_path) if drop_path > 0. \
             else nn.Identity()
@@ -268,7 +317,7 @@ class SwiftFormerEncoder(nn.Module):
 def Stage(dim, index, layers, mlp_ratio=4.,
           act_layer=nn.GELU,
           drop_rate=.0, drop_path_rate=0.,
-          use_layer_scale=True, layer_scale_init_value=1e-5, vit_num=1):
+          use_layer_scale=True, layer_scale_init_value=1e-5, vit_num=1, gamma=0, groups=1):
     """
     Implementation of each SwiftFormer stages. Here, SwiftFormerEncoder used as the last block in all stages, while ConvEncoder used in the rest of the blocks.
     Input: tensor in shape [B, C, H, W]
@@ -284,10 +333,10 @@ def Stage(dim, index, layers, mlp_ratio=4.,
                 dim, mlp_ratio=mlp_ratio,
                 act_layer=act_layer, drop_path=block_dpr,
                 use_layer_scale=use_layer_scale,
-                layer_scale_init_value=layer_scale_init_value))
+                layer_scale_init_value=layer_scale_init_value, gamma=gamma))
 
         else:
-            blocks.append(ConvEncoder(dim=dim, hidden_dim=int(mlp_ratio * dim), kernel_size=3))
+            blocks.append(ConvEncoder(dim=dim, hidden_dim=int(mlp_ratio * dim), kernel_size=3, pw2_groups=groups))
 
     blocks = nn.Sequential(*blocks)
     return blocks
@@ -298,7 +347,7 @@ class SwiftFormer(nn.Module):
     def __init__(self, layers, embed_dims=None,
                  mlp_ratios=4, downsamples=None,
                  act_layer=nn.GELU,
-                 num_classes=0,
+                 num_classes=1000,
                  down_patch_size=3, down_stride=2, down_pad=1,
                  drop_rate=0., drop_path_rate=0.,
                  use_layer_scale=True, layer_scale_init_value=1e-5,
@@ -306,7 +355,9 @@ class SwiftFormer(nn.Module):
                  init_cfg=None,
                  pretrained=None,
                  vit_num=1,
-                 distillation=False,
+                 distillation=True,
+                 gamma = 0,
+                 groups=[1,1,1,1],
                  **kwargs):
         super().__init__()
 
@@ -315,7 +366,7 @@ class SwiftFormer(nn.Module):
         self.fork_feat = fork_feat
 
         self.patch_embed = stem(3, embed_dims[0])
-
+        self.gamma = gamma
         network = []
         for i in range(len(layers)):
             stage = Stage(embed_dims[i], i, layers, mlp_ratio=mlp_ratios,
@@ -324,7 +375,9 @@ class SwiftFormer(nn.Module):
                           drop_path_rate=drop_path_rate,
                           use_layer_scale=use_layer_scale,
                           layer_scale_init_value=layer_scale_init_value,
-                          vit_num=vit_num)
+                          vit_num=vit_num,
+                          gamma=gamma,
+                          groups=groups[i])
             network.append(stage)
             if i >= len(layers) - 1:
                 break
@@ -356,17 +409,34 @@ class SwiftFormer(nn.Module):
             #self.head = nn.Linear(
             #    embed_dims[-1], num_classes) if num_classes > 0 \
             #    else nn.Identity()
-            self.head = nn.Sequential(*[nn.AdaptiveAvgPool2d((1,1)),
-                                        nn.BatchNorm2d(embed_dims[-1]),
-                                        nn.Dropout(0.1),
-                                        nn.Flatten(),
-                                        nn.Linear(embed_dims[-1],512)
-                                        ])
+            # self.head = nn.Sequential(*[nn.AdaptiveAvgPool2d((1,1)),
+            #                             nn.BatchNorm2d(embed_dims[-1]),
+            #                             nn.Dropout(0.1),
+            #                             nn.Flatten(),
+            #                             get_linear(embed_dims[-1],512, gamma=self.gamma)
+            #                             ])
+            self.head = nn.Sequential(*[ConvBlock(embed_dims[-1], 512, kernel_size=1),
+                                        GDConv(512, 512, 4, padding=0),
+                                        nn.Conv2d(512,512, kernel_size=1), #in_planes x emb_size
+                                        nn.BatchNorm2d(512),
+                                        nn.Flatten()
+                                    ])
+
+        
+
+
             self.dist = distillation
             if self.dist:
-                self.dist_head = nn.Linear(
-                    embed_dims[-1], num_classes) if num_classes > 0 \
-                    else nn.Identity()
+                # self.dist_head = nn.Linear(
+                #     embed_dims[-1], num_classes) if num_classes > 0 \
+                #     else nn.Identity()
+                self.dist_head = nn.Sequential(*[ConvBlock(embed_dims[-1], 512, kernel_size=1),
+                                        GDConv(512, 512, kernel_size=layers[-1], padding=0),
+                                        nn.Conv2d(512,512, kernel_size=1), #in_planes x emb_size
+                                        nn.BatchNorm2d(512),
+                                        nn.Flatten()
+                                    ])
+                
 
         # self.apply(self.cls_init_weights)
         self.apply(self._init_weights)
@@ -439,7 +509,8 @@ class SwiftFormer(nn.Module):
 
         x = self.norm(x)
         if self.dist:
-            cls_out = self.head(x.flatten(2).mean(-1)), self.dist_head(x.flatten(2).mean(-1))
+            #cls_out = self.head(x.flatten(2).mean(-1)), self.dist_head(x.flatten(2).mean(-1))
+            cls_out = self.head(x), self.dist_head(x)
             if not self.training:
                 cls_out = (cls_out[0] + cls_out[1]) / 2
         else:
@@ -460,6 +531,18 @@ def _cfg(url='', **kwargs):
         **kwargs
     }
 
+
+@register_model
+def SwiftFormer_XXS(pretrained=False, **kwargs):
+    model = SwiftFormer(
+        layers=SwiftFormer_depth['XXS'],
+        embed_dims=SwiftFormer_width['XXS'],
+        downsamples=[True, True, True, True],
+        vit_num=1,
+        groups=SwiftFormer_groups['XXS'],
+        **kwargs)
+    model.default_cfg = _cfg(crop_pct=0.9)
+    return model
 
 @register_model
 def SwiftFormer_XS(pretrained=False, **kwargs):
