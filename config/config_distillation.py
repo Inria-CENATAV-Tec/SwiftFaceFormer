@@ -6,8 +6,8 @@ config.embedding_size = 512
 config.momentum = 0.9
 config.weight_decay = 5e-4
 config.batch_size = 128
-config.lr = 0.01
-config.output = "output/swiftformer-arcface-retina"
+config.lr = 0.05
+config.output = "output/swiftformer-XS-KD-L3-MSE-arcface-retina"
 config.scale=1.0
 config.global_step=0
 config.s=64.0
@@ -29,9 +29,9 @@ config.magface={"margin_am": 0.0,
                 "lamda": 20}
 
 # for KD
-config.teacher_pth = "models/r100-ms1mv3"
+config.teacher_pth = "models/SwiftFormer-GDConv/SwiftFormer-L3-GDConv/"
 #config.teacher_global_step = 295672
-config.teacher_network="iresnet100"
+config.teacher_network="SwiftFormer-L3"
 
 # if use pretrained model (not for resume!)
 #config.student_pth = ""
