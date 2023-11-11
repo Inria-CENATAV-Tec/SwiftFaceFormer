@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch.nn.parallel.distributed import DistributedDataParallel
 import torch.utils.data.distributed
 from torch.nn.utils import clip_grad_norm_
-from torch.nn import CrossEntropyLoss, MSELoss
+from torch.nn import CrossEntropyLoss, MSELoss, CosineEmbeddingLoss
 
 import sys
 sys.path.append('/Documents/PocketNet/')
@@ -22,7 +22,7 @@ from utils.utils_logging import AverageMeter, init_logging
 
 from backbones.iresnet import iresnet100
 from backbones.augment_cnn import AugmentCNN
-from backbones import SwiftFormer_XS, SwiftFormer_L3
+from backbones import SwiftFormer_XS, SwiftFormer_L3, SwiftFormer_XXS
 import backbones.genotypes as gt
 
 torch.backends.cudnn.benchmark = True
@@ -52,10 +52,10 @@ def main(args):
         sampler=train_sampler, num_workers=0, pin_memory=True, drop_last=True)
 
     # load teacher model
-    backbone_teacher = iresnet100(num_features=cfg.embedding_size).to(local_rank)
+    backbone_teacher = SwiftFormer_L3(distillation=False, num_classes=0).to(local_rank) #iresnet100(num_features=cfg.embedding_size).to(local_rank)
     try:
-        backbone_teacher_pth = os.path.join(cfg.teacher_pth, "backbone.pth")
-        backbone_teacher.load_state_dict(torch.load(backbone_teacher_pth, map_location=torch.device(local_rank)))
+        backbone_teacher_pth = os.path.join(cfg.teacher_pth, "458592backbone.pth")
+        print(backbone_teacher.load_state_dict(torch.load(backbone_teacher_pth, map_location=torch.device(local_rank))))
 
         if rank == 0:
             logging.info("backbone teacher loaded successfully!")
@@ -64,9 +64,11 @@ def main(args):
 
     # load model
     if args_.network_student == "SwiftFormer_XS":
-        backbone_student = SwiftFormer_XS(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+        backbone_student = SwiftFormer_XS(distillation=True, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
     elif args_.network_student == "SwiftFormer_L3":
         backbone_student = SwiftFormer_L3(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+    elif args_.network_student == "SwiftFormer_XXS":
+        backbone_student = SwiftFormer_XXS(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
     else:
         genotype = gt.from_str(cfg.genotypes["softmax_casia"])
         backbone_student = AugmentCNN(C=cfg.channel, n_layers=cfg.n_layers, genotype=genotype, stem_multiplier=4, emb=cfg.embedding_size).to(local_rank)
@@ -144,7 +146,7 @@ def main(args):
 
     criterion = CrossEntropyLoss()
     
-    criterion2 = CrossEntropyLoss()
+    criterion2 = MSELoss()
 
     start_epoch = 0
     total_step = int(len(trainset) / cfg.batch_size / world_size * cfg.num_epoch)
@@ -185,11 +187,12 @@ def main(args):
 
             with torch.no_grad():
                 features_teacher = F.normalize(backbone_teacher(img))
-            features_student = F.normalize(backbone_student(img))
+            features_student_raw = backbone_student(img)
+            features_student = F.normalize(features_student_raw[0]),F.normalize(features_student_raw[1]) 
 
-            thetas = header(features_student, label)
+            thetas = header(features_student[0], label)
             loss_v1 = 0.5 * criterion(thetas, label)
-            loss_v2 = 0.5 * criterion2(features_student, features_teacher)
+            loss_v2 = 0.5 * criterion2(features_student[1], features_teacher) * 10000
             loss_v = loss_v1 + loss_v2
             loss_v.backward()
 
@@ -220,7 +223,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PoketNet Training with template knowledge distillation')
     parser.add_argument('--local-rank', type=int, default=0, help='local_rank')
     parser.add_argument('--network_student', type=str, default="SwiftFormer_XS", help="backbone of student network")
-    parser.add_argument('--network_teacher', type=str, default="iresnet100", help="backbone of teacher network")
+    parser.add_argument('--network_teacher', type=str, default="SwiftFormer_L3", help="backbone of teacher network")
     parser.add_argument('--loss', type=str, default="ArcFace", help="loss function")
     parser.add_argument('--pretrained_student', type=int, default=0, help="use pretrained student model for KD")
     parser.add_argument('--resume', type=int, default=0, help="resume training")
