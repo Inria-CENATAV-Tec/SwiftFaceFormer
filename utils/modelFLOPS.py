@@ -1,8 +1,8 @@
 from backbones.augment_cnn import AugmentCNN
 from backbones import genotypes as gt
 
-from pytorch_model_summary import summary
-from util.config import config as cfg
+from torchinfo import summary
+#from config import config as cfg
 
 import torch
 from torch.autograd import Variable
@@ -81,7 +81,7 @@ def count_model_flops(model, input_res=[112, 112], multiply_adds=True):
                 handles.append(net.register_forward_hook(linear_hook))
             elif isinstance(net, torch.nn.BatchNorm2d) or isinstance(net, torch.nn.BatchNorm1d):
                 handles.append(net.register_forward_hook(bn_hook))
-            elif isinstance(net, torch.nn.ReLU) or isinstance(net, torch.nn.PReLU) or isinstance(net,torch.nn.Sigmoid) or isinstance(net, HSwish) or isinstance(net, Swish):
+            elif isinstance(net, torch.nn.ReLU) or isinstance(net, torch.nn.PReLU) or isinstance(net,torch.nn.Sigmoid) or isinstance(net, torch.nn.SiLU) or isinstance(net, torch.nn.GELU):
                 handles.append(net.register_forward_hook(relu_hook))
             elif isinstance(net, torch.nn.MaxPool2d) or isinstance(net, torch.nn.AvgPool2d):
                 handles.append(net.register_forward_hook(pooling_hook))
