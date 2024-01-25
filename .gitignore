@@ -7,3 +7,4 @@ NAS/searchs_output
 datasets/**/*
 models/**/*
 output/**/*
+*.std*

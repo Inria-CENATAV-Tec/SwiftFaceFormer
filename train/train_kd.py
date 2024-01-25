@@ -12,7 +12,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.nn import CrossEntropyLoss, MSELoss, CosineEmbeddingLoss
 
 import sys
-sys.path.append('/Documents/PocketNet/')
+sys.path.append('/home/lluevanogarcia/PocketNet/')
 
 from utils import losses
 from config.config_distillation import config as cfg
@@ -29,6 +29,7 @@ torch.backends.cudnn.benchmark = True
 
 def CosineSimilarityLoss(feat1, feat2, offset=0, scale=1):
     # minimize average cosine similarity
+    #return 1-(F.cosine_similarity(feat1, feat2).mean())
     return ((-1 * F.cosine_similarity(feat1, feat2).mean())+offset) * scale
 
 def main(args):
@@ -150,7 +151,7 @@ def main(args):
 
     criterion = CrossEntropyLoss()
     
-    criterion2 = CosineSimilarityLoss
+    criterion2 = MSELoss()
 
     start_epoch = 0
     total_step = int(len(trainset) / cfg.batch_size / world_size * cfg.num_epoch)
@@ -196,7 +197,7 @@ def main(args):
 
             thetas = header(features_student[0], label)
             loss_v1 = 0.5 * criterion(thetas, label)
-            loss_v2 = 0.5 * criterion2(features_student[1], features_teacher, offset=1, scale=64)
+            loss_v2 = 0.5 * criterion2(features_student[1], features_teacher) * 10000
             loss_v = loss_v1 + loss_v2
             loss_v.backward()
 

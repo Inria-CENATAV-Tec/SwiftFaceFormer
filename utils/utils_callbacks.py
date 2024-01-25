@@ -146,9 +146,9 @@ class CallBackModelCheckpoint(object):
 
     def __call__(self, global_step, backbone_student: torch.nn.Module, header: torch.nn.Module = None):
         if global_step > 100 and self.rank == 0:
-            torch.save(backbone_student.module.state_dict(), os.path.join(self.output, str(global_step)+ "backbone.pth"))
+            torch.save(backbone_student.module.state_dict(), os.path.join(self.output, "backbone.pth"))
         if global_step > 100 and header is not None:
-            torch.save(header.module.state_dict(), os.path.join(self.output, str(global_step)+ "header.pth"))
+            torch.save(header.module.state_dict(), os.path.join(self.output, "header.pth"))
 class CallBackModelCheckpointKD(object):
     def __init__(self, rank, output="./"):
         self.rank: int = rank
@@ -156,6 +156,6 @@ class CallBackModelCheckpointKD(object):
 
     def __call__(self, global_step, backbone_student: torch.nn.Module, header: torch.nn.Module = None):
         if global_step > 100 and self.rank == 0:
-            torch.save(backbone_student.module.state_dict(), os.path.join(self.output, str(global_step)+ "backbone.pth"))
+            torch.save(backbone_student.module.state_dict(), os.path.join(self.output, "backbone.pth"))
         if global_step > 100 and header is not None:
-            torch.save(header.module.state_dict(), os.path.join(self.output, str(global_step)+ "header.pth"))
+            torch.save(header.module.state_dict(), os.path.join(self.output, "header.pth"))

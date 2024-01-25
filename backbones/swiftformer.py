@@ -11,7 +11,18 @@ from timm.models.registry import register_model
 from timm.layers import to_2tuple
 from functools import partial
 
+from functools import partial
+
 import einops
+
+
+SwiftFormer_groups = {
+    'XXS': [8, 4, 2, 1],
+    'XS': [1, 1, 1, 1],
+    'S': [1, 1, 1, 1],
+    'l1': [1, 1, 1, 1],
+    'l3': [1, 1, 1, 1],
+}
 
 
 SwiftFormer_groups = {
@@ -24,6 +35,7 @@ SwiftFormer_groups = {
 
 SwiftFormer_width = {
     'XXS': [16, 48, 56, 128],
+    'XXS': [16, 48, 56, 128],
     'XS': [48, 56, 112, 220],
     'S': [48, 64, 168, 224],
     'l1': [48, 96, 192, 384],
@@ -31,6 +43,7 @@ SwiftFormer_width = {
 }
 
 SwiftFormer_depth = {
+    'XXS': [3, 2, 3, 4],
     'XXS': [3, 2, 3, 4],
     'XS': [3, 3, 6, 4],
     'S': [3, 3, 9, 6],
