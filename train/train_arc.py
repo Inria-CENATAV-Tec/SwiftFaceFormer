@@ -14,11 +14,10 @@ from torch.nn.utils import clip_grad_norm_
 from timm.utils.clip_grad import dispatch_clip_grad
 
 import sys
-sys.path.append('/Documents/PocketNet/')
-
-import backbones.genotypes as gt
+sys.path.append('/home/lluevanogarcia/PocketNet/')
+#import backbones.genotypes as gt
 from backbones.augment_cnn import AugmentCNN
-from backbones import SwiftFormer_XS, SwiftFormer_L3
+from backbones import SwiftFormer_XS, SwiftFormer_L3, SwiftFormer_XXS
 from config.config_example import config as cfg
 from utils import losses
 from utils.dataset import MXFaceDataset, DataLoaderX
@@ -57,6 +56,8 @@ def main(args):
         backbone_student = SwiftFormer_XS(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
     elif args_.network_student == "SwiftFormer_L3":
         backbone_student = SwiftFormer_L3(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+    elif args_.network_student == "SwiftFormer_XXS":
+        backbone_student = SwiftFormer_XXS(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
     else:
         genotype = gt.from_str(cfg.genotypes["softmax_casia"])
         backbone_student = AugmentCNN(C=cfg.channel, n_layers=cfg.n_layers, genotype=genotype, stem_multiplier=4, emb=cfg.embedding_size).to(local_rank)
@@ -203,9 +204,9 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PoketNet Training')
     parser.add_argument('--local-rank', type=int, default=0, help='local_rank')
-    parser.add_argument('--network_student', type=str, default="SwiftFormer_L3", help="backbone of PocketNet network")
+    parser.add_argument('--network_student', type=str, default="SwiftFormer_XXS", help="backbone of PocketNet network")
     parser.add_argument('--loss', type=str, default="ArcFace", help="loss function")
-    parser.add_argument('--pretrained_student', type=int, default=1, help="use pretrained")
+    parser.add_argument('--pretrained_student', type=int, default=0, help="use pretrained")
     parser.add_argument('--resume', type=int, default=0, help="resume training")
     parser.add_argument('--config', type=str, default="config/config_example.py", help="configuration path")
 

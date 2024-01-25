@@ -12,7 +12,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.nn import CrossEntropyLoss, MSELoss, CosineEmbeddingLoss
 
 import sys
-sys.path.append('/Documents/PocketNet/')
+sys.path.append('/home/lluevanogarcia/PocketNet/')
 
 from utils import losses
 from config.config_distillation import config as cfg
@@ -26,6 +26,10 @@ from backbones import SwiftFormer_XS, SwiftFormer_L3, SwiftFormer_XXS
 import backbones.genotypes as gt
 
 torch.backends.cudnn.benchmark = True
+
+def CosineSimilarityLoss(feat1, feat2):
+    # minimize average cosine similarity
+    return 1-(F.cosine_similarity(feat1, feat2).mean())
 
 def main(args):
     dist.init_process_group(backend='nccl', init_method='env://')
@@ -68,7 +72,7 @@ def main(args):
     elif args_.network_student == "SwiftFormer_L3":
         backbone_student = SwiftFormer_L3(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
     elif args_.network_student == "SwiftFormer_XXS":
-        backbone_student = SwiftFormer_XXS(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+        backbone_student = SwiftFormer_XXS(distillation=True, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
     else:
         genotype = gt.from_str(cfg.genotypes["softmax_casia"])
         backbone_student = AugmentCNN(C=cfg.channel, n_layers=cfg.n_layers, genotype=genotype, stem_multiplier=4, emb=cfg.embedding_size).to(local_rank)
@@ -146,8 +150,8 @@ def main(args):
 
     criterion = CrossEntropyLoss()
     
-    criterion2 = MSELoss()
-
+    criterion2 = CosineSimilarityLoss
+    criterion3 = MSELoss()
     start_epoch = 0
     total_step = int(len(trainset) / cfg.batch_size / world_size * cfg.num_epoch)
     if rank == 0: logging.info("Total Step is: %d" % total_step)
@@ -192,8 +196,9 @@ def main(args):
 
             thetas = header(features_student[0], label)
             loss_v1 = 0.5 * criterion(thetas, label)
-            loss_v2 = 0.5 * criterion2(features_student[1], features_teacher) * 10000
-            loss_v = loss_v1 + loss_v2
+            loss_v2 = 0.25 * criterion2(features_student[1], features_teacher) * 100
+            loss_v3 = 0.25 * criterion3(features_student[1], features_teacher) * 10000
+            loss_v = loss_v1 + loss_v2 + loss_v3
             loss_v.backward()
 
             clip_grad_norm_(backbone_student.parameters(), max_norm=5, norm_type=2)
@@ -222,7 +227,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PoketNet Training with template knowledge distillation')
     parser.add_argument('--local-rank', type=int, default=0, help='local_rank')
-    parser.add_argument('--network_student', type=str, default="SwiftFormer_XS", help="backbone of student network")
+    parser.add_argument('--network_student', type=str, default="SwiftFormer_XXS", help="backbone of student network")
     parser.add_argument('--network_teacher', type=str, default="SwiftFormer_L3", help="backbone of teacher network")
     parser.add_argument('--loss', type=str, default="ArcFace", help="loss function")
     parser.add_argument('--pretrained_student', type=int, default=0, help="use pretrained student model for KD")

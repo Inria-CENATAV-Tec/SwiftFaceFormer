@@ -358,6 +358,7 @@ class SwiftFormer(nn.Module):
                  distillation=True,
                  gamma = 0,
                  groups=[1,1,1,1],
+                 head_name="gdconv",
                  **kwargs):
         super().__init__()
 
@@ -409,20 +410,28 @@ class SwiftFormer(nn.Module):
             #self.head = nn.Linear(
             #    embed_dims[-1], num_classes) if num_classes > 0 \
             #    else nn.Identity()
-            # self.head = nn.Sequential(*[nn.AdaptiveAvgPool2d((1,1)),
-            #                             nn.BatchNorm2d(embed_dims[-1]),
-            #                             nn.Dropout(0.1),
-            #                             nn.Flatten(),
-            #                             get_linear(embed_dims[-1],512, gamma=self.gamma)
-            #                             ])
-            self.head = nn.Sequential(*[ConvBlock(embed_dims[-1], 512, kernel_size=1),
-                                        GDConv(512, 512, 4, padding=0),
-                                        nn.Conv2d(512,512, kernel_size=1), #in_planes x emb_size
-                                        nn.BatchNorm2d(512),
-                                        nn.Flatten()
-                                    ])
-
-        
+            if head_name=="gdconv":
+                self.head = nn.Sequential(*[ConvBlock(embed_dims[-1], 512, kernel_size=1),
+                                            GDConv(512, 512, 4, padding=0),
+                                            nn.Conv2d(512,512, kernel_size=1), #in_planes x emb_size
+                                            nn.BatchNorm2d(512),
+                                            nn.Flatten()
+                                        ])
+            elif head_name=="edgeface":
+                self.head = nn.Sequential(*[nn.AdaptiveAvgPool2d((1,1)),
+                                         nn.BatchNorm2d(embed_dims[-1]),
+                                         nn.Dropout(0.1),
+                                         nn.Flatten(),
+                                         get_linear(embed_dims[-1],512, gamma=self.gamma)
+                                         ])
+            elif head_name=="GAP":
+                 self.head = nn.Sequential(*[nn.AvgPool2d(kernel_size=4),
+                                        nn.Flatten(),
+                                        nn.Linear(embed_dims[-1], 512)
+                                     ])
+            else:
+                print("Head not implemented. Using Identity")
+                self.head = nn.Identity()
 
 
             self.dist = distillation
