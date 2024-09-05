@@ -1,5 +1,5 @@
 """
-SwiftFormer
+SwiftFaceFormer
 """
 import os
 import copy
@@ -11,12 +11,11 @@ from timm.models.registry import register_model
 from timm.layers import to_2tuple
 from functools import partial
 
-from functools import partial
-
 import einops
 
 
-SwiftFormer_groups = {
+
+SwiftFaceFormer_groups = {
     'XXS': [8, 4, 2, 1],
     'XS': [1, 1, 1, 1],
     'S': [1, 1, 1, 1],
@@ -24,16 +23,7 @@ SwiftFormer_groups = {
     'l3': [1, 1, 1, 1],
 }
 
-
-SwiftFormer_groups = {
-    'XXS': [8, 4, 2, 1],
-    'XS': [1, 1, 1, 1],
-    'S': [1, 1, 1, 1],
-    'l1': [1, 1, 1, 1],
-    'l3': [1, 1, 1, 1],
-}
-
-SwiftFormer_width = {
+SwiftFaceFormer_width = {
     'XXS': [16, 48, 56, 128],
     'XXS': [16, 48, 56, 128],
     'XS': [48, 56, 112, 220],
@@ -42,7 +32,7 @@ SwiftFormer_width = {
     'l3': [64, 128, 320, 512],
 }
 
-SwiftFormer_depth = {
+SwiftFaceFormer_depth = {
     'XXS': [3, 2, 3, 4],
     'XXS': [3, 2, 3, 4],
     'XS': [3, 3, 6, 4],
@@ -355,7 +345,7 @@ def Stage(dim, index, layers, mlp_ratio=4.,
     return blocks
 
 
-class SwiftFormer(nn.Module):
+class SwiftFaceFormer(nn.Module):
 
     def __init__(self, layers, embed_dims=None,
                  mlp_ratios=4, downsamples=None,
@@ -368,7 +358,7 @@ class SwiftFormer(nn.Module):
                  init_cfg=None,
                  pretrained=None,
                  vit_num=1,
-                 distillation=True,
+                 distillation=False,
                  gamma = 0,
                  groups=[1,1,1,1],
                  head_name="gdconv",
@@ -556,34 +546,22 @@ def _cfg(url='', **kwargs):
 
 
 @register_model
-def SwiftFormer_XXS(pretrained=False, **kwargs):
-    model = SwiftFormer(
-        layers=SwiftFormer_depth['XXS'],
-        embed_dims=SwiftFormer_width['XXS'],
+def SwiftFaceFormer_XXS(pretrained=False, **kwargs):
+    model = SwiftFaceFormer(
+        layers=SwiftFaceFormer_depth['XXS'],
+        embed_dims=SwiftFaceFormer_width['XXS'],
         downsamples=[True, True, True, True],
         vit_num=1,
-        groups=SwiftFormer_groups['XXS'],
+        groups=SwiftFaceFormer_groups['XXS'],
         **kwargs)
     model.default_cfg = _cfg(crop_pct=0.9)
     return model
 
 @register_model
-def SwiftFormer_XS(pretrained=False, **kwargs):
-    model = SwiftFormer(
-        layers=SwiftFormer_depth['XS'],
-        embed_dims=SwiftFormer_width['XS'],
-        downsamples=[True, True, True, True],
-        vit_num=1,
-        **kwargs)
-    model.default_cfg = _cfg(crop_pct=0.9)
-    return model
-
-
-@register_model
-def SwiftFormer_S(pretrained=False, **kwargs):
-    model = SwiftFormer(
-        layers=SwiftFormer_depth['S'],
-        embed_dims=SwiftFormer_width['S'],
+def SwiftFaceFormer_XS(pretrained=False, **kwargs):
+    model = SwiftFaceFormer(
+        layers=SwiftFaceFormer_depth['XS'],
+        embed_dims=SwiftFaceFormer_width['XS'],
         downsamples=[True, True, True, True],
         vit_num=1,
         **kwargs)
@@ -592,10 +570,10 @@ def SwiftFormer_S(pretrained=False, **kwargs):
 
 
 @register_model
-def SwiftFormer_L1(pretrained=False, **kwargs):
-    model = SwiftFormer(
-        layers=SwiftFormer_depth['l1'],
-        embed_dims=SwiftFormer_width['l1'],
+def SwiftFaceFormer_S(pretrained=False, **kwargs):
+    model = SwiftFaceFormer(
+        layers=SwiftFaceFormer_depth['S'],
+        embed_dims=SwiftFaceFormer_width['S'],
         downsamples=[True, True, True, True],
         vit_num=1,
         **kwargs)
@@ -604,10 +582,22 @@ def SwiftFormer_L1(pretrained=False, **kwargs):
 
 
 @register_model
-def SwiftFormer_L3(pretrained=False, **kwargs):
-    model = SwiftFormer(
-        layers=SwiftFormer_depth['l3'],
-        embed_dims=SwiftFormer_width['l3'],
+def SwiftFaceFormer_L1(pretrained=False, **kwargs):
+    model = SwiftFaceFormer(
+        layers=SwiftFaceFormer_depth['l1'],
+        embed_dims=SwiftFaceFormer_width['l1'],
+        downsamples=[True, True, True, True],
+        vit_num=1,
+        **kwargs)
+    model.default_cfg = _cfg(crop_pct=0.9)
+    return model
+
+
+@register_model
+def SwiftFaceFormer_L3(pretrained=False, **kwargs):
+    model = SwiftFaceFormer(
+        layers=SwiftFaceFormer_depth['l3'],
+        embed_dims=SwiftFaceFormer_width['l3'],
         downsamples=[True, True, True, True],
         vit_num=1,
         **kwargs)

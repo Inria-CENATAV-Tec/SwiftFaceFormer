@@ -8,7 +8,7 @@ import backbones.genotypes as gt
 
 from backbones.augment_cnn import AugmentCNN
 from backbones.iresnet import iresnet100
-from config.config_example import config as cfg
+from config.config_SwiftFaceFormer import config as cfg
 
 genotype = gt.from_str(cfg.genotypes["softmax_casia"])
 model = AugmentCNN(C=cfg.channel, n_layers=cfg.n_layers, genotype=genotype, stem_multiplier=4,

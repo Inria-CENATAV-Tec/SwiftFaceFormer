@@ -7,7 +7,7 @@ config.momentum = 0.9
 config.weight_decay = 5e-4
 config.batch_size = 128
 config.lr = 0.05
-config.output = "output/swiftformer-XXS-KD-L3-CustomCosSim-arcface-retina"
+config.output = "output/swiftfaceformer-XXS-KD-L3-CustomCosSim-arcface-retina"
 config.scale=1.0
 config.global_step=0
 config.s=64.0
@@ -29,9 +29,9 @@ config.magface={"margin_am": 0.0,
                 "lamda": 20}
 
 # for KD
-config.teacher_pth = "models/SwiftFormer-GDConv/SwiftFormer-L3-GDConv/"
+config.teacher_pth = "models/SwiftFaceFormer-GDConv/SwiftFaceFormer-L3-GDConv/"
 #config.teacher_global_step = 295672
-config.teacher_network="SwiftFormer-L3"
+config.teacher_network="SwiftFaceFormer-L3"
 
 # if use pretrained model (not for resume!)
 #config.student_pth = ""

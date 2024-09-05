@@ -12,14 +12,14 @@ from torch.nn.utils import clip_grad_norm_
 from torch.nn import CrossEntropyLoss, MSELoss
 
 from utils import losses
-from config import config_example as cfg
+from config import config_SwiftFaceFormer as cfg
 from utils.dataset import MXFaceDataset, DataLoaderX
 from utils.utils_callbacks import CallBackVerification, CallBackLoggingKD, CallBackModelCheckpointKD
 from utils.utils_logging import AverageMeter, init_logging
 
 from backbones.iresnet import iresnet100
 from backbones.augment_cnn import AugmentCNN
-from backbones import SwiftFormer_XS, SwiftFormer_L3
+from backbones import SwiftFaceFormer_XXS, SwiftFaceFormer_L3
 import backbones.genotypes as gt
 
 torch.backends.cudnn.benchmark = True
@@ -49,10 +49,10 @@ def main(args):
         sampler=train_sampler, num_workers=0, pin_memory=True, drop_last=True)
 
     # load student model
-    if args_.network_student == "SwiftFormer_XS":
-        backbone_student = SwiftFormer_XS(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
-    elif args_.network_student == "SwiftFormer_L3":
-        backbone_student = SwiftFormer_L3(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+    if args_.network_student == "SwiftFaceFormer_XXS":
+        backbone_student = SwiftFaceFormer_XXS(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
+    elif args_.network_student == "SwiftFaceFormer_L3":
+        backbone_student = SwiftFaceFormer_L3(distillation=False, num_classes=0).to(local_rank) #models.get_model(args_.network_student)
     else:
         genotype = gt.from_str(cfg.genotypes["softmax_casia"])
         backbone_student = AugmentCNN(C=cfg.channel, n_layers=cfg.n_layers, genotype=genotype, stem_multiplier=4, emb=cfg.embedding_size).to(local_rank)
@@ -220,8 +220,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PoketNet Training with multi-step knowledge distillation ')
     parser.add_argument('--local_rank', type=int, default=0, help='local_rank')
-    parser.add_argument('--network_student', type=str, default="dartFaceNet", help="backbone of student network")
-    parser.add_argument('--network_teacher', type=str, default="iresnet100", help="backbone of teacher network")
+    parser.add_argument('--network_student', type=str, default="SwiftFaceFormer_XXS", help="backbone of student network")
+    parser.add_argument('--network_teacher', type=str, default="SwiftFaceFormer_L3", help="backbone of teacher network")
     parser.add_argument('--loss', type=str, default="ArcFace", help="loss function")
     parser.add_argument('--pretrained_student', type=int, default=0, help="use pretrained student model for KD")
     parser.add_argument('--resume', type=int, default=0, help="resume training")
