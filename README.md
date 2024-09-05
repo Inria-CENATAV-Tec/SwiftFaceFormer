@@ -14,7 +14,7 @@ If you find this work useful for your research, please consider citing our work:
 
 ```BibTeX
 @INPROCEEDINGS{Luevano_SwiftFaceFormer_ICPR2024,
-  author={Luevano, Luis S. and Martínez-Díaz, Yoanna and Méndez-Vázquez, Heydi and Gonzalez-Mendoza, Miguel and Frey, Davide},
+  author={Luevano, Luis S. and Martínez-Díaz, Yoanna and Méndez-Vázquez, Heydi and González-Mendoza, Miguel and Frey, Davide},
   booktitle={2024 27th International Conference on Pattern Recognition (ICPR)}, 
   title={SwiftFaceFormer: An Efficient and Lightweight Hybrid Architecture for Accurate Face Recognition Applications}, 
   year={2024},
@@ -24,7 +24,16 @@ If you find this work useful for your research, please consider citing our work:
   }
 ```
 
-The rest of the readme comes from the original repository
+This repository is based on [lluevano/PocketNet-Custom](https://github.com/lluevano/PocketNet-custom).
+
+
+## License
+
+```
+This project is licensed under the terms of the Attribution-NonCommercial-ShareAlike 4.0 
+International (CC BY-NC-SA 4.0) license. 
+Copyright (c) 2024 Luis Santiago Luévano García
+```
 
 --------
 
