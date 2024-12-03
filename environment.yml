@@ -1,0 +1,23 @@
+name: swiftfaceformer
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda
+  - ca-certificates
+  - openssl
+  - scipy
+  - certifi
+  - scikit-learn
+  - timm
+  - einops
+  - pip:
+    - mxnet==1.9.1
+    - numpy
+    - opencv-python
+    - python-graphviz
