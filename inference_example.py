@@ -12,7 +12,7 @@ batch_img = Resize((112,112))(img_tensor).reshape((1,3,112,112))
 #param distillation=False for no dual head distillation
 model = SwiftFaceFormer_XXS(distillation=True, num_classes=0)
 
-checkpoint = 'models/KD-SFF-L3-XXS/SwiftFaceFormer-XXS-MSE-arcface-retina/458592backbone.pth'
+checkpoint = 'models/SwiftFaceFormer/SwiftFaceFormer-XXS-KD-L3/SwiftFaceFormer-XXS-MSE-arcface-retina/458592backbone.pth'
 print(model.load_state_dict(torch.load(checkpoint, map_location=torch.device('cpu')), strict=False))
 
 model.eval()
